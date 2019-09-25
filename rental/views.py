@@ -15,72 +15,131 @@ import pandas as pd
 import numpy as np
 
 
-def pie_data(request):
-    """ JSON API """
-
-    # GROUP BY
-    data = list(
-        RentalData.objects.using('rental_data')
-        .values('community', '_type')
-        .annotate(dcount=Count('community'))
-        .order_by('-dcount')
-        .filter(position='active', dcount__gte=10)
-    )
-
-    return JsonResponse(data, safe=False)
+import rental.view_func as vf
 
 
-def bar_data(request):
-    """ JSON API """
+def time_series(request, quadrant, p_type, active=1):
 
-    # GROUP BY
-    data = list(
-        RentalData.objects.using('rental_data')
-        .values('community', '_type')
-        .annotate(Avg('price'), dcount=Count('community'))  # For filtering
-        .order_by('-price__avg')
-        .filter(position='active', dcount__gte=10)
-    )
+    if(active == 1):
 
-    return JsonResponse(data, safe=False)
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using('rental_data')
+                .values('_type', 'price', 'quadrant')
+                .filter(position='active')
+            )
+        )
+
+    else:
+
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using('rental_data')
+                .values('_type', 'price', 'quadrant')
+            )
+        )
+
+    # Remove properties that have 0 dollars rent
+    df = df[df.price != 0]
+
+    df.set_index('retrieval_date', inplace=True)
+
+    df = df.sort_index()
+
+    df = vf.quadrant_format(df)
+
+    df = df[(df['_type'] == p_type) & (df['quadrant'] == quadrant)].dropna()
+
+    df.drop(columns=['_type', 'quadrant'], inplace=True)
+
+    agg = df.groupby(df.index).mean()
+
+    flat = agg.to_dict()
+
+    return JsonResponse(flat, safe=False)
 
 
-def hist_data(request):
-    """ JSON API """
+def price_metrics(request, fun, quadrant="all", p_type="all", active=1):
 
-    data = list(
-        RentalData.objects.using('rental_data')
-        .values('price', '_type')
-        .filter(position='active')
-    )
+    if(active == 1):
 
-    return JsonResponse(data, safe=False)
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using('rental_data')
+                .values('_type', 'price', 'quadrant')
+                .filter(position='active')
+            )
+        )
+
+    else:
+
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using('rental_data')
+                .values('_type', 'price', 'quadrant')
+            )
+        )
+
+    df = vf.quadrant_format(df)
+
+    if(quadrant != "all"):
+        df = df[(df['_type'] == p_type)]
+
+    if(p_type != "all"):
+        df = df[(df['quadrant'] == quadrant)]
+
+    # Remove properties that have 0 dollars rent
+    df = df[df.price != 0]
+
+    if fun == 'avg':
+        val = df['price'].mean()
+    elif fun == 'min':
+        val = df['price'].min()
+    elif fun == 'max':
+        val = df['price'].max()
+    else:
+        val = df['price'].mean()
+
+    val = round(val)
+
+    return JsonResponse({"fun": fun, "quadrant": quadrant, "p_type": p_type, "val": val}, safe=False)
 
 
-def box_data(request):
-    """ JSON API """
+def listing_count(request, quadrant="all", p_type="all", active=1):
 
-    data = RentalData.objects.using('rental_data')
-    data = data.values('quadrant', 'price', '_type')
-    data = data.filter(position='active')
+    if(active == 1):
 
-    data = list(data)
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using('rental_data')
+                .values('_type', 'price', 'quadrant')
+                .filter(position='active')
+            )
+        )
 
-    # Rename quadrants
-    for n, i in enumerate(data):
-        for n, x in enumerate(i):
-            if i[x] == '':
-                i[x] = "Unspecified"
-            if (i[x] == 'Inner-City||SW') or (i[x] == 'SW||Inner-City'):
-                i[x] = 'SW-Central'
-            if (i[x] == 'Inner-City||NW') or (i[x] == 'NW||Inner-City'):
-                i[x] = 'NW-Central'
-            if (i[x] == 'Inner-City||SE') or (i[x] == 'SE||Inner-City'):
-                i[x] = 'SE-Central'
-            if (i[x] == 'Inner-City||NE') or (i[x] == 'NE||Inner-City'):
-                i[x] = 'NE-Central'
+    else:
 
-    return JsonResponse(data, safe=False)
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using('rental_data')
+                .values('_type', 'price', 'quadrant')
+            )
+        )
+
+    # Remove properties that have 0 dollars rent
+    df = df[df.price != 0]
+
+    df = vf.quadrant_format(df)
+
+    if(quadrant != "all"):
+        df = df[(df['_type'] == p_type)]
+
+    if(p_type != "all"):
+        df = df[(df['quadrant'] == quadrant)]
+
+    val = df.shape[0]
+
+    return JsonResponse({"quadrant": quadrant, "p_type": p_type, "count": val}, safe=False)
 
 
 def map_data(request):
@@ -93,106 +152,5 @@ def map_data(request):
     )
 
     from django.core.serializers import serialize
-
-    return JsonResponse(data, safe=False)
-
-
-def corr_data(request):
-    """ JSON API """
-
-    df = pd.DataFrame(
-        list(
-            RentalData.objects.using('rental_data')
-            # TODO: Convert values to numeric...
-            .values('price', '_type', 'sq_feet', 'location', 'community', 'quadrant', 'bedrooms', 'den', 'baths', 'cats', 'dogs', 'utilities_included')
-            .filter(position='active')
-        )
-    )
-
-    # Conditionally replace quadrant names
-    df.loc[df['quadrant'] == '', 'quadrant'] = "Unspecified"
-    df.loc[(df['quadrant'] == 'Inner-City||SW') | (df['quadrant']
-                                                   == 'SW||Inner-City'), 'quadrant'] = "SW-Central"
-    df.loc[(df['quadrant'] == 'Inner-City||NW') | (df['quadrant']
-                                                   == 'NW||Inner-City'), 'quadrant'] = "NW-Central"
-    df.loc[(df['quadrant'] == 'Inner-City||SE') | (df['quadrant']
-                                                   == 'SE||Inner-City'), 'quadrant'] = "SE-Central"
-    df.loc[(df['quadrant'] == 'Inner-City||NE') | (df['quadrant']
-                                                   == 'NE||Inner-City'), 'quadrant'] = "NE-Central"
-
-    # One hot encoding of quadrants
-    df['quadrant'] = pd.Categorical(df['quadrant'])
-
-    dfDummies = pd.get_dummies(df['quadrant'], prefix='Quadrant')
-
-    df = pd.concat([df, dfDummies], axis=1)
-
-    # One hot encoding of type
-    df['_type'] = pd.Categorical(df['_type'])
-
-    dfDummies = pd.get_dummies(df['_type'], prefix='Type')
-
-    df = pd.concat([df, dfDummies], axis=1)
-
-    corr = df.corr()
-    z = corr.values.tolist()
-    x = corr.columns.tolist()
-    y = corr.index.tolist()
-
-    data = {
-        "zValues": z,
-        "xValues": x,
-        "yValues": y,
-    }
-
-    return JsonResponse(data, safe=False)
-
-
-def ts_data(request):
-    """ JSON API TODO: add filtering by quadrant """
-
-    df = pd.DataFrame(
-        list(
-            RentalData.objects.using('rental_data')
-            .values('retrieval_date', '_type', 'price')
-            .filter(position='active')
-        )
-    )
-
-    dfList = []
-
-    # Aggregate by type
-    for val in df['_type'].unique():
-
-        sliced = df.loc[df['_type'] == val]
-
-        agg = sliced.groupby('retrieval_date').mean()
-
-        agg = agg.rename(columns={'price': val})
-
-        dfList.append(agg)
-
-    df = pd.concat(dfList, axis=1)
-
-    df = df[['Townhouse', 'House', 'Duplex',
-             'Apartment', 'Main Floor', 'Condo', 'Shared']]
-
-    df = df.dropna()
-
-    flat = df.to_dict('dict')
-
-    from django.core.serializers import serialize
-
-    return JsonResponse(flat, safe=False)
-
-
-def scatter_data(request):
-    """ JSON API """
-
-    # GROUP BY
-    data = list(
-        RentalData.objects.using('rental_data')
-        .values('community', 'price', 'sq_feet')
-    )
 
     return JsonResponse(data, safe=False)
