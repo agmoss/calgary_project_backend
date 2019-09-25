@@ -18,14 +18,14 @@ import numpy as np
 import rental.view_func as vf
 
 
-def time_series(request, quadrant, p_type, active=1):
+def time_series(request, quadrant='all', p_type='all', active=1):
 
     if(active == 1):
 
         df = pd.DataFrame(
             list(
                 RentalData.objects.using('rental_data')
-                .values('_type', 'price', 'quadrant')
+                .values('_type','retrieval_date' ,'price', 'quadrant')
                 .filter(position='active')
             )
         )
@@ -35,7 +35,7 @@ def time_series(request, quadrant, p_type, active=1):
         df = pd.DataFrame(
             list(
                 RentalData.objects.using('rental_data')
-                .values('_type', 'price', 'quadrant')
+                .values('_type','retrieval_date' ,'price', 'quadrant')
             )
         )
 
@@ -48,11 +48,17 @@ def time_series(request, quadrant, p_type, active=1):
 
     df = vf.quadrant_format(df)
 
-    df = df[(df['_type'] == p_type) & (df['quadrant'] == quadrant)].dropna()
+    if(quadrant != "all"):
+        df = df[(df['_type'] == p_type)]
+
+    if(p_type != "all"):
+        df = df[(df['quadrant'] == quadrant)]
 
     df.drop(columns=['_type', 'quadrant'], inplace=True)
 
     agg = df.groupby(df.index).mean()
+
+    agg = agg.round()
 
     flat = agg.to_dict()
 
