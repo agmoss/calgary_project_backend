@@ -1,4 +1,4 @@
-<h1 align="center">Calgary Project Backend</h1>
+<h1 align="center">Rentwiser Backend</h1>
 
 <div align="center">
     <img src="img/appartments.png" alt="Logo" width="100" height="100" />
@@ -19,15 +19,15 @@
     </a>
     <!-- Code Size -->
     <a>
-        <img src="https://img.shields.io/github/languages/code-size/agmoss/calgary_project_backend" alt="Code Size" />
+        <img src="https://img.shields.io/github/languages/code-size/agmoss/rentwiser_backend" alt="Code Size" />
     </a>
     <!--CircleCI Build -->
     <a>
-        <img src="https://img.shields.io/circleci/build/github/agmoss/calgary_project_backend/master" alt="Built Status">
+        <img src="https://img.shields.io/circleci/build/github/agmoss/rentwiser_backend/master" alt="Built Status">
     </a>
     <!--License -->
     <a>
-        <img src="https://img.shields.io/github/license/agmoss/calgary_project_backend" alt="License">
+        <img src="https://img.shields.io/github/license/agmoss/rentwiser_backend" alt="License">
     </a>
 </div>
 
