@@ -12,15 +12,6 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 
-# Set environment variables
-os.environ['SECRET_KEY'] = 'GV#3%l1-61ct7369-ulnhedjlzo5j40*eu) (68ab5@qg2xl2fh'
-os.environ['PASSWORD'] = 'Demilovato@1'
-os.environ['USER'] = 'andrew@rental-server'
-os.environ['DEFAULT_NAME'] = 'djadmin'
-os.environ['RENTAL_DATA_NAME'] = 'rental_data'
-os.environ['HOST'] = 'rental-server.mysql.database.azure.com'
-os.environ['PORT'] = '3306'
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
