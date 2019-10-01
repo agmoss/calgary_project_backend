@@ -17,6 +17,4 @@ Including another URLconf
 from django.urls import include, path
 
 
-urlpatterns = [
-    path('', include("rental.urls")),
-]
+urlpatterns = [path("", include("rental.urls"))]

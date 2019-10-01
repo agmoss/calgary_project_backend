@@ -1,13 +1,18 @@
 from django.db import models
 
+
 class RentalData(models.Model):
     ref_id = models.CharField(primary_key=True, max_length=255)
-    userid = models.IntegerField(db_column='userId', blank=True, null=True)  # Field name made lowercase.
-    _id = models.IntegerField(db_column = 'id',blank=True, null=True)
+    userid = models.IntegerField(
+        db_column="userId", blank=True, null=True
+    )  # Field name made lowercase.
+    _id = models.IntegerField(db_column="id", blank=True, null=True)
     title = models.CharField(max_length=255, blank=True, null=True)
     price = models.FloatField(blank=True, null=True)
-    _type = models.CharField(db_column = 'type',max_length=255, blank=True, null=True)
-    sq_feet = models.DecimalField(max_digits=10, decimal_places=0, blank=True, null=True)
+    _type = models.CharField(db_column="type", max_length=255, blank=True, null=True)
+    sq_feet = models.DecimalField(
+        max_digits=10, decimal_places=0, blank=True, null=True
+    )
     availability = models.CharField(max_length=255, blank=True, null=True)
     avdate = models.CharField(max_length=255, blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
@@ -46,4 +51,5 @@ class RentalData(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'rental_data'
+        db_table = "rental_data"
+
