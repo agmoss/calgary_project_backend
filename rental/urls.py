@@ -18,7 +18,7 @@ urlpatterns = [
         name="listing_count",
     ),
     path(
-        "api/market/<slug:quadrant>/<slug:community>/<slug:p_type><int:active>",
+        "api/market/<slug:quadrant>/<slug:community>/<slug:p_type>/<int:active>",
         views.market_share,
         name="market_share",
     ),

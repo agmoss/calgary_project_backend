@@ -158,9 +158,6 @@ def listing_count(request, quadrant="all", community="all", p_type="all", active
             )
         )
 
-    # Remove properties that have 0 dollars rent
-    df = df[df.price != 0]
-
     # Format quadrant names
     df = vf.quadrant_format(df)
 
@@ -200,9 +197,6 @@ def market_share(request, quadrant="all", community="all", p_type="all", active=
             )
         )
 
-    # Remove properties that have 0 dollars rent
-    df = df[df.price != 0]
-
     # Format quadrant names
     df = vf.quadrant_format(df)
 
@@ -220,7 +214,7 @@ def market_share(request, quadrant="all", community="all", p_type="all", active=
             "community": community,
             "val": df.shape[0],
             "total": df_total.shape[0],
-            "count": val,
+            "ms": val,
         },
         safe=False,
     )
