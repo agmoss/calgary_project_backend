@@ -18,14 +18,19 @@ import numpy as np
 import rental.view_func as vf
 
 
-def time_series(request, quadrant="all", p_type="all", active=1):
+def time_series(request, quadrant="all", community="all", p_type="all", active=1):
+    """ 
+    Time series data on selection
+    """
+
+    community = community.replace("_", " ")
 
     if active == 1:
 
         df = pd.DataFrame(
             list(
                 RentalData.objects.using("rental_data")
-                .values("_type", "retrieval_date", "price", "quadrant")
+                .values("_type", "retrieval_date", "price", "quadrant", "community")
                 .filter(position="active")
             )
         )
@@ -35,7 +40,7 @@ def time_series(request, quadrant="all", p_type="all", active=1):
         df = pd.DataFrame(
             list(
                 RentalData.objects.using("rental_data").values(
-                    "_type", "retrieval_date", "price", "quadrant"
+                    "_type", "retrieval_date", "price", "quadrant", "community"
                 )
             )
         )
@@ -47,13 +52,11 @@ def time_series(request, quadrant="all", p_type="all", active=1):
 
     df = df.sort_index()
 
+    # Format quadrant names
     df = vf.quadrant_format(df)
 
-    if p_type != "all":
-        df = df[(df["_type"] == p_type)]
-
-    if quadrant != "all":
-        df = df[(df["quadrant"] == quadrant)]
+    # Slice
+    df = vf.query_slice(df, p_type, quadrant, community)
 
     df.drop(columns=["_type", "quadrant"], inplace=True)
 
@@ -66,14 +69,22 @@ def time_series(request, quadrant="all", p_type="all", active=1):
     return JsonResponse(flat, safe=False)
 
 
-def price_metrics(request, fun, quadrant="all", p_type="all", active=1):
+def price_metrics(
+    request, fun, quadrant="all", community="all", p_type="all", active=1
+):
+
+    """ 
+    Price stats on selection
+    """
+
+    community = community.replace("_", " ")
 
     if active == 1:
 
         df = pd.DataFrame(
             list(
                 RentalData.objects.using("rental_data")
-                .values("_type", "price", "quadrant")
+                .values("_type", "price", "quadrant", "community")
                 .filter(position="active")
             )
         )
@@ -83,18 +94,16 @@ def price_metrics(request, fun, quadrant="all", p_type="all", active=1):
         df = pd.DataFrame(
             list(
                 RentalData.objects.using("rental_data").values(
-                    "_type", "price", "quadrant"
+                    "_type", "price", "quadrant", "community"
                 )
             )
         )
 
+    # Format quadrant names
     df = vf.quadrant_format(df)
 
-    if p_type != "all":
-        df = df[(df["_type"] == p_type)]
-
-    if quadrant != "all":
-        df = df[(df["quadrant"] == quadrant)]
+    # Slice
+    df = vf.query_slice(df, p_type, quadrant, community)
 
     # Remove properties that have 0 dollars rent
     df = df[df.price != 0]
@@ -111,18 +120,30 @@ def price_metrics(request, fun, quadrant="all", p_type="all", active=1):
     val = round(val)
 
     return JsonResponse(
-        {"fun": fun, "quadrant": quadrant, "p_type": p_type, "val": val}, safe=False
+        {
+            "fun": fun,
+            "quadrant": quadrant,
+            "community": community,
+            "p_type": p_type,
+            "val": val,
+        },
+        safe=False,
     )
 
 
-def listing_count(request, quadrant="all", p_type="all", active=1):
+def listing_count(request, quadrant="all", community="all", p_type="all", active=1):
+    """ 
+    Count of rental listings for selection
+    """
+
+    community = community.replace("_", " ")
 
     if active == 1:
 
         df = pd.DataFrame(
             list(
                 RentalData.objects.using("rental_data")
-                .values("_type", "price", "quadrant")
+                .values("_type", "price", "quadrant", "community")
                 .filter(position="active")
             )
         )
@@ -132,7 +153,7 @@ def listing_count(request, quadrant="all", p_type="all", active=1):
         df = pd.DataFrame(
             list(
                 RentalData.objects.using("rental_data").values(
-                    "_type", "price", "quadrant"
+                    "_type", "price", "quadrant", "community"
                 )
             )
         )
@@ -140,23 +161,93 @@ def listing_count(request, quadrant="all", p_type="all", active=1):
     # Remove properties that have 0 dollars rent
     df = df[df.price != 0]
 
+    # Format quadrant names
     df = vf.quadrant_format(df)
 
-    if p_type != "all":
-        df = df[(df["_type"] == p_type)]
-
-    if quadrant != "all":
-        df = df[(df["quadrant"] == quadrant)]
+    # Slice
+    df = vf.query_slice(df, p_type, quadrant, community)
 
     val = df.shape[0]
 
     return JsonResponse(
-        {"quadrant": quadrant, "p_type": p_type, "count": val}, safe=False
+        {"quadrant": quadrant, "community": community, "p_type": p_type, "count": val},
+        safe=False,
     )
 
 
+def market_share(request, quadrant="all", community="all", p_type="all", active=1):
+    """ 
+    Market cap of selection
+    """
+
+    if active == 1:
+
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using("rental_data")
+                .values("_type", "price", "quadrant", "community")
+                .filter(position="active")
+            )
+        )
+
+    else:
+
+        df = pd.DataFrame(
+            list(
+                RentalData.objects.using("rental_data").values(
+                    "_type", "price", "quadrant", "community"
+                )
+            )
+        )
+
+    # Remove properties that have 0 dollars rent
+    df = df[df.price != 0]
+
+    # Format quadrant names
+    df = vf.quadrant_format(df)
+
+    # Cache before slice
+    df_total = df.copy()
+
+    df = vf.query_slice(df, p_type, quadrant, community)
+
+    val = df.shape[0] / df_total.shape[0]
+
+    return JsonResponse(
+        {
+            "quadrant": quadrant,
+            "p_type": p_type,
+            "community": community,
+            "val": df.shape[0],
+            "total": df_total.shape[0],
+            "count": val,
+        },
+        safe=False,
+    )
+
+
+def community_list(request):
+    """ 
+    Returns a list of signfigant communities
+    """
+
+    df = pd.DataFrame(
+        list(
+            RentalData.objects.using("rental_data")
+            .values("community")
+            .filter(position="active")
+        )
+    )
+
+    df = df.community.value_counts()
+
+    flat = df.to_dict()
+
+    return JsonResponse({"resp": flat}, safe=False)
+
+
 def map_data(request):
-    """ JSON API """
+    """ NOT IN USE RN - JSON API """
 
     data = list(
         RentalData.objects.using("rental_data")
