@@ -289,15 +289,20 @@ def scatter_data(request, quadrant="all", community="all", p_type="all", active=
     # Slice
     df = vf.query_slice(df, p_type, quadrant, community)
 
-    # Remove properties that have 0 dollars rent
-    df = df[df.price != 0]
+    # We only need price/sq feet
+    df.drop(columns=["_type", "quadrant","community"], inplace=True)
 
     # Remove properties that have 0 dollars rent
-    df = df[df.sq_feet != 0]
+    df = df.loc[(df.price > 100) & (df.price <10000)]
 
-    flat = df.to_dict('record')
+    # Remove properties that have 0 dollars rent
+    df = df.loc[(df.sq_feet > 100) & (df.sq_feet <10000)]
 
-    return JsonResponse(flat, safe=False)
+    df.sq_feet = df.sq_feet.astype(int)
+
+    flat = df.to_dict('split')
+
+    return JsonResponse(flat["data"], safe=False)
 
 
 def community_list(request):
