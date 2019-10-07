@@ -13,6 +13,11 @@ urlpatterns = [
         name="time_series",
     ),
     path(
+        "api/scatter/<slug:quadrant>/<slug:community>/<slug:p_type>/<int:active>",
+        views.scatter_data,
+        name="scatter_data",
+    ),
+    path(
         "api/count/<slug:quadrant>/<slug:community>/<slug:p_type>/<int:active>",
         views.listing_count,
         name="listing_count",
