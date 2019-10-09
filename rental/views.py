@@ -300,6 +300,9 @@ def scatter_data(request, quadrant="all", community="all", p_type="all", active=
 
     df.sq_feet = df.sq_feet.astype(int)
 
+    if df.shape[0] > 2500:
+        df = df.sample(n=2500)
+
     flat = df.to_dict('split')
 
     return JsonResponse(flat["data"], safe=False)
