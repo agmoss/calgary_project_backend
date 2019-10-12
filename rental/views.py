@@ -202,6 +202,8 @@ def market_share(request, quadrant="all", community="all", p_type="all", active=
 
     try:
 
+        community = community.replace("_", " ")
+
         if active == 1:
 
             df = pd.DataFrame(
@@ -262,6 +264,8 @@ def market_share(request, quadrant="all", community="all", p_type="all", active=
 def scatter_data(request, quadrant="all", community="all", p_type="all", active=1):
     """ JSON API for scatter plot """
 
+    community = community.replace("_", " ")
+
     if active == 1:
 
         df = pd.DataFrame(
@@ -313,6 +317,8 @@ def community_list(request):
     Returns a list of signfigant communities
     """
 
+    community = community.replace("_", " ")
+
     df = pd.DataFrame(
         list(
             RentalData.objects.using("rental_data")
@@ -328,15 +334,49 @@ def community_list(request):
     return JsonResponse({"resp": flat}, safe=False)
 
 
-def map_data(request):
-    """ NOT IN USE RN - JSON API """
+def map_data(request, quadrant="all", community="all", p_type="all", active=1):
+    """ JSON API for Leaflet data """
 
-    data = list(
-        RentalData.objects.using("rental_data")
-        .values("latitude", "longitude", "price", "_type", "address", "sq_feet")
-        .filter(position="active")
-    )
+    community = community.replace("_", " ")
 
-    from django.core.serializers import serialize
+    if active == 1:
 
-    return JsonResponse(data, safe=False)
+        df = pd.DataFrame (
+            list(
+                RentalData.objects.using("rental_data").values(
+                    "latitude", "longitude", "quadrant", "community", "price", "_type", "address", "sq_feet"
+                )
+                .filter(position="active")
+            )
+        )
+
+    else:
+
+        df = pd.DataFrame (
+            list(
+                RentalData.objects.using("rental_data").values(
+                    "latitude", "longitude", "quadrant", "community", "price", "_type", "address", "sq_feet"
+                )
+            )
+        )
+
+    # Format quadrant names
+    df = vf.quadrant_format(df)
+
+    # Slice
+    df = vf.query_slice(df, p_type, quadrant, community)
+
+    # We only need price/sq feet
+    df.drop(columns=["_type", "quadrant","community"], inplace=True)
+
+    # Remove properties that have 0 dollars rent
+    df = df.loc[(df.price > 100) & (df.price <10000)]
+
+    # Remove properties that have 0 dollars rent
+    df = df.loc[(df.sq_feet > 100) & (df.sq_feet <10000)]
+
+    df.sq_feet = df.sq_feet.astype(int)
+
+    flat = df.to_dict('records')
+
+    return JsonResponse(flat, safe=False)

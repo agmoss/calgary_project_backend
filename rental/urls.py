@@ -27,6 +27,8 @@ urlpatterns = [
         views.market_share,
         name="market_share",
     ),
+    path("api/map/<slug:quadrant>/<slug:community>/<slug:p_type>/<int:active>",
+        views.map_data, name="map_data"),
+        
     path("api/community_list", views.community_list, name="community_list"),
-    path("api/map_data", views.map_data, name="map_data"),
 ]
