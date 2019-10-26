@@ -377,6 +377,8 @@ def map_data(request, quadrant="all", community="all", p_type="all", active=1):
 
     df.sq_feet = df.sq_feet.astype(int)
 
+    df.dropna(inplace = True)
+
     flat = df.to_dict('records')
 
     return JsonResponse(flat, safe=False)
