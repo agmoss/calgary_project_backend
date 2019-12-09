@@ -1,7 +1,7 @@
 appdirs==1.4.3
 astroid==2.2.5
 attrs==19.1.0
-black==19.3b0
+black==19.10b0
 Click==7.0
 Django==2.2.8
 django-cors-headers==3.1.0
